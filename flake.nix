@@ -1,37 +1,49 @@
 {
-  description = "Kolektiv apps and CLIs — one flake input, packages + pkgs.kolektiv overlay";
+  description = "Kolektiv umbrella flake — compose app flakes into packages + pkgs.kolektiv overlay";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    # App flakes / package.nix sources — wire as they grow flakes:
+
+    # App flakes (re-export only — sources stay in each repo).
+    # Uncomment as each repo ships a flake with packages.${system}.default (or named attrs):
     # katalog.url = "github:KolektivComputer/katalog";
+    # katalog.inputs.nixpkgs.follows = "nixpkgs";
     # kascade.url = "github:KolektivComputer/kascade";
+    # kascade.inputs.nixpkgs.follows = "nixpkgs";
+    # kalendee.url = "github:KolektivComputer/kalendee";
+    # kalendee.inputs.nixpkgs.follows = "nixpkgs";
+    # keel.url = "github:KolektivComputer/keel";
+    # keel.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, ... }:
+  outputs = { self, nixpkgs, ... }@inputs:
     let
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
-      # Placeholder set — replace with real derivations from per-app package.nix
-      kolektivPkgs = pkgs: {
-        # katalog = pkgs.callPackage ./pkgs/katalog { };
-        # kascade = pkgs.callPackage ./pkgs/kascade { };
+
+      # Map: attr name under packages / pkgs.kolektiv → flake input name that exposes .packages.${system}.default
+      # Add a line here when a new app flake lands.
+      appFlakes = {
+        # katalog = "katalog";
+        # kascade = "kascade";
+        # kalendee = "kalendee";
+        # keel = "keel";
       };
+
+      packagesFor = system:
+        nixpkgs.lib.mapAttrs (_name: inputName:
+          inputs.${inputName}.packages.${system}.default
+        ) appFlakes;
+
     in
     {
-      packages = forAllSystems (system:
-        let pkgs = nixpkgs.legacyPackages.${system};
-        in kolektivPkgs pkgs
-      );
+      # Idiomatic: inputs.kolektiv.packages.${system}.katalog
+      packages = forAllSystems packagesFor;
 
-      # Optional nixpkgs-style browsing
-      legacyPackages = forAllSystems (system:
-        let pkgs = nixpkgs.legacyPackages.${system};
-        in kolektivPkgs pkgs
-      );
+      legacyPackages = forAllSystems packagesFor;
 
       overlays.default = final: prev: {
-        kolektiv = kolektivPkgs final;
+        kolektiv = packagesFor final.stdenv.hostPlatform.system;
       };
     };
 }
