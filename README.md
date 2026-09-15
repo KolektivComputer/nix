@@ -1,21 +1,16 @@
 # kolektiv/nix
 
-Umbrella flake. Compose app flakes into one input. Use `inputs.kolektiv.packages.${system}.katalog` (and friends), or overlay to `pkgs.kolektiv.*`. Prefer a single app’s flake when you only need that package.
+Umbrella flake. App flakes as inputs; pick the packages you want under `inputs.kolektiv.packages.${system}.*`, or overlay into `pkgs.kolektiv.*`.
+
+Two families in one flake: `packages` for CLIs and desktop apps; `nixosModules` (and `*-server` packages when needed) for deployables. Keep attrs clear (`kalendee` vs `kalendee-server`).
+
+Don’t invent `inputs.kolektiv.pkgs`. No second branch.
 
 ```nix
 {
   inputs.kolektiv.url = "github:KolektivComputer/nix";
 }
 ```
-
-## Two families (one flake)
-
-| Family | For | Example |
-| --- | --- | --- |
-| `packages.${system}.*` | CLIs + desktop Linux apps | `katalog`, `kascade`, `kalendee` (client) |
-| `nixosModules.*` (+ optional `packages.*.*-server`) | Deployable servers / services | `nixosModules.kalendee`, `packages.*.kalendee-server` |
-
-Attr names stay clear: `kalendee` vs `kalendee-server`. No second `nix-server` repo or branch — selective attrs on this umbrella.
 
 ```bash
 nix build github:KolektivComputer/nix#katalog
@@ -28,7 +23,7 @@ pkgs.kolektiv.katalog
 pkgs.kolektiv.kalendee-server
 ```
 
-Don’t invent `inputs.kolektiv.pkgs`.
+Prefer a single app’s flake when you only need that package.
 
 ## Per-repo rule
 
